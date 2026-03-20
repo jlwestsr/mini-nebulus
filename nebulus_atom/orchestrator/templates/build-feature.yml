@@ -1,0 +1,78 @@
+name: build-feature
+description: >
+  Full TDD cycle for a new feature. Takes a goal statement and produces
+  an implementation plan, failing tests, working code, and code review.
+version: "1.0"
+
+steps:
+  - id: plan
+    agent: atom
+    model_hint: medium
+    timeout_seconds: 120
+    prompt: |
+      You are a senior software architect. Create a detailed implementation plan for:
+
+      {{input}}
+
+      Include:
+      - Architecture decisions and rationale
+      - List of files to create or modify
+      - Key interfaces and data structures
+      - Potential edge cases
+
+      Be specific and concise.
+
+  - id: tests
+    agent: atom
+    depends_on: [plan]
+    model_hint: code
+    timeout_seconds: 180
+    prompt: |
+      Write failing pytest tests based on this implementation plan:
+
+      {{plan}}
+
+      Requirements:
+      - Tests must fail initially (TDD)
+      - Cover happy path and edge cases
+      - Use descriptive test names
+      - Include docstrings explaining intent
+
+  - id: implement
+    agent: atom
+    depends_on: [plan, tests]
+    model_hint: large
+    timeout_seconds: 300
+    prompt: |
+      Implement code to pass these tests:
+
+      PLAN:
+      {{plan}}
+
+      TESTS:
+      {{tests}}
+
+      Requirements:
+      - All tests must pass
+      - Follow existing code conventions
+      - Add docstrings
+      - No unnecessary complexity
+
+  - id: review
+    agent: atom
+    depends_on: [implement]
+    model_hint: medium
+    timeout_seconds: 120
+    prompt: |
+      Review this implementation for quality and correctness:
+
+      {{implement}}
+
+      Evaluate:
+      - Correctness and test coverage
+      - Code quality and readability
+      - Security considerations
+      - Performance concerns
+      - Suggested improvements
+
+      Be concise and actionable.

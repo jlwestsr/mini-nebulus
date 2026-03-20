@@ -1,0 +1,55 @@
+name: research-and-draft
+description: >
+  Research a topic and produce a structured written output.
+  Takes a topic or question and produces research notes, outline, and draft.
+version: "1.0"
+
+steps:
+  - id: research
+    agent: atom
+    model_hint: medium
+    timeout_seconds: 180
+    prompt: |
+      Research the following topic thoroughly:
+
+      {{input}}
+
+      Provide:
+      - Key facts and concepts
+      - Current state of the art (if technical)
+      - Important considerations and tradeoffs
+      - Relevant examples or references
+
+  - id: outline
+    agent: atom
+    depends_on: [research]
+    model_hint: small
+    timeout_seconds: 60
+    prompt: |
+      Create a structured outline for a written piece based on:
+
+      TOPIC: {{input}}
+
+      RESEARCH:
+      {{research}}
+
+      Produce a clear hierarchical outline with main sections and subsections.
+
+  - id: draft
+    agent: atom
+    depends_on: [research, outline]
+    model_hint: large
+    timeout_seconds: 300
+    prompt: |
+      Write a complete draft based on:
+
+      TOPIC: {{input}}
+
+      OUTLINE:
+      {{outline}}
+
+      KEY RESEARCH:
+      {{research}}
+
+      Write clearly and concisely. Target audience: technical professionals.
+      Include concrete examples where appropriate.

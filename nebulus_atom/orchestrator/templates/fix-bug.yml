@@ -1,0 +1,58 @@
+name: fix-bug
+description: >
+  Diagnose and fix a bug. Takes a bug description and produces
+  a diagnosis, a fix, and a regression test.
+version: "1.0"
+
+steps:
+  - id: diagnose
+    agent: atom
+    model_hint: medium
+    timeout_seconds: 120
+    prompt: |
+      Diagnose this bug:
+
+      {{input}}
+
+      Provide:
+      - Root cause analysis
+      - Why the bug occurs
+      - What code path is affected
+      - Suggested fix approach
+
+  - id: fix
+    agent: atom
+    depends_on: [diagnose]
+    model_hint: code
+    timeout_seconds: 300
+    prompt: |
+      Fix the following bug based on this diagnosis:
+
+      BUG:
+      {{input}}
+
+      DIAGNOSIS:
+      {{diagnose}}
+
+      Provide:
+      - The exact code change (diff format preferred)
+      - Explanation of what changed and why
+
+  - id: regression_test
+    agent: atom
+    depends_on: [diagnose, fix]
+    model_hint: code
+    timeout_seconds: 120
+    prompt: |
+      Write a regression test to prevent this bug from recurring:
+
+      BUG:
+      {{input}}
+
+      FIX APPLIED:
+      {{fix}}
+
+      Write a pytest test that:
+      - Reproduces the original bug scenario
+      - Verifies the fix works
+      - Has a clear name and docstring

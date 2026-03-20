@@ -397,5 +397,137 @@ def audit(
         console.print(f"[red]Unknown action: {action}. Use 'verify' or 'export'.[/red]")
 
 
+@app.command("orchestrate")
+def orchestrate(
+    goal: Optional[List[str]] = typer.Argument(
+        None, help="Goal or task description to orchestrate"
+    ),
+    template: str = typer.Option(
+        "build-feature",
+        "--template",
+        "-t",
+        help="Workflow template to use (build-feature, fix-bug, research-and-draft)",
+    ),
+    list_templates_flag: bool = typer.Option(
+        False, "--list-templates", "-l", help="List available workflow templates"
+    ),
+    workflow_file: Optional[str] = typer.Option(
+        None, "--workflow", "-w", help="Path to custom workflow YAML file"
+    ),
+):
+    """
+    Run a multi-step workflow using the orchestration engine.
+
+    Examples:
+      atom orchestrate "Add JWT authentication to the API"
+      atom orchestrate "Login returns 500 on special chars" --template fix-bug
+      atom orchestrate --list-templates
+      atom orchestrate "research topic" --template research-and-draft
+    """
+    import asyncio
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+
+    console = Console()
+
+    # List templates and exit
+    if list_templates_flag:
+        from nebulus_atom.orchestrator.loader import list_templates, load_workflow
+
+        available = list_templates()
+        if not available:
+            console.print("[yellow]No templates found.[/yellow]")
+            return
+        table = Table(title="Available Workflow Templates", show_header=True)
+        table.add_column("Name", style="cyan")
+        table.add_column("Description")
+        table.add_column("Steps")
+        for name in available:
+            try:
+                wf = load_workflow(name)
+                table.add_row(
+                    name, wf.description[:80], ", ".join(s.id for s in wf.steps)
+                )
+            except Exception:
+                table.add_row(name, "(error loading)", "")
+        console.print(table)
+        return
+
+    if not goal:
+        console.print(
+            "[red]Provide a goal, e.g.: atom orchestrate 'build a REST API'[/red]"
+        )
+        raise typer.Exit(1)
+
+    goal_text = " ".join(goal)
+
+    async def run():
+        from nebulus_atom.orchestrator.engine import WorkflowEngine
+        from nebulus_atom.orchestrator.loader import load_workflow
+        from nebulus_atom.controllers.agent_controller import AgentController
+        from nebulus_atom.views.cli_view import CLIView
+
+        # Bootstrap enough of the agent to get an OpenAI service
+        view = CLIView()
+        controller = AgentController(view=view)
+        await controller.initialize()
+
+        engine = WorkflowEngine(controller.openai_service)
+
+        # Load workflow
+        source = workflow_file or template
+        try:
+            workflow = load_workflow(source)
+        except FileNotFoundError as e:
+            console.print(f"[red]{e}[/red]")
+            raise typer.Exit(1)
+        except ValueError as e:
+            console.print(f"[red]Invalid workflow: {e}[/red]")
+            raise typer.Exit(1)
+
+        console.print(
+            Panel(
+                f"[bold cyan]Workflow:[/bold cyan] {workflow.name}\n"
+                f"[bold cyan]Goal:[/bold cyan] {goal_text}\n"
+                f"[bold cyan]Steps:[/bold cyan] {' → '.join(s.id for s in workflow.steps)}",
+                title="🔄 Orchestrating",
+            )
+        )
+
+        job = await engine.submit_and_wait(workflow, inputs={"goal": goal_text})
+
+        # Display results
+        for step in workflow.steps:
+            result = job.step_results.get(step.id)
+            if not result:
+                continue
+            icon = "✅" if result.status.value == "completed" else "❌"
+            duration = (
+                f" ({result.duration_seconds:.1f}s)" if result.duration_seconds else ""
+            )
+            model = f" [{result.model_used}]" if result.model_used else ""
+            console.print(f"\n{icon} [bold]{step.id}[/bold]{duration}{model}")
+            if result.output:
+                console.print(
+                    Panel(
+                        result.output[:2000]
+                        + ("..." if len(result.output) > 2000 else "")
+                    )
+                )
+            if result.error:
+                console.print(f"[red]Error: {result.error}[/red]")
+
+        status_color = "green" if job.status.value == "completed" else "red"
+        console.print(
+            f"\n[{status_color}]Job {job.status.value}: {job.id}[/{status_color}]"
+        )
+
+    try:
+        asyncio.run(run())
+    except (KeyboardInterrupt, SystemExit):
+        pass
+
+
 if __name__ == "__main__":
     app()
