@@ -108,26 +108,23 @@ class StepExecutor:
         """Run a prompt through the local Atom LLM service."""
         messages = [{"role": "user", "content": prompt}]
 
-        # Override model on the service for this call
-        original_model = getattr(self._openai, "_model", None)
+        # Temporarily override model
+        original_model = getattr(self._openai, "model", None)
         try:
-            if hasattr(self._openai, "_model"):
-                self._openai._model = model
+            if hasattr(self._openai, "model"):
+                self._openai.model = model
 
-            response_chunks = []
-
-            async def collect_chunks(chunk: str):
-                response_chunks.append(chunk)
-
+            response_parts = []
             async with asyncio.timeout(timeout_seconds):
-                await self._openai.stream_response(
+                completion = await self._openai.client.chat.completions.create(
+                    model=model,
                     messages=messages,
-                    on_chunk=collect_chunks,
+                    stream=False,
                 )
+                response_parts.append(completion.choices[0].message.content or "")
 
-            return "".join(response_chunks).strip()
+            return "".join(response_parts).strip()
 
         finally:
-            # Restore original model
-            if original_model is not None and hasattr(self._openai, "_model"):
-                self._openai._model = original_model
+            if original_model is not None and hasattr(self._openai, "model"):
+                self._openai.model = original_model

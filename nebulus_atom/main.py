@@ -471,9 +471,8 @@ def orchestrate(
         # Bootstrap enough of the agent to get an OpenAI service
         view = CLIView()
         controller = AgentController(view=view)
-        await controller.initialize()
-
-        engine = WorkflowEngine(controller.openai_service)
+        # _openai is initialized in AgentController.__init__
+        engine = WorkflowEngine(controller._openai)
 
         # Load workflow
         source = workflow_file or template
