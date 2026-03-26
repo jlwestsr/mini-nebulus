@@ -40,7 +40,7 @@ When you update user-facing features, version numbers, or key metrics:
    ```
 3. Update relevant wiki pages:
    - `Home.md` - Version, test count, architecture overview
-   - Feature-specific pages (e.g., `Swarm-Overlord.md`, `Overlord-CLI.md`)
+   - Feature-specific pages (e.g., `Swarm-Overlord.md`, `CLI-Reference.md`)
    - `_Sidebar.md` - Navigation links if adding new pages
 4. Commit and push wiki changes:
    ```bash
@@ -61,7 +61,7 @@ When you update user-facing features, version numbers, or key metrics:
 
 ## Overlord Status
 
-Cross-project meta-orchestrator for the Nebulus ecosystem (v2.6.0, 849 Overlord tests).
+Cross-project meta-orchestrator for the Nebulus ecosystem (v2.6.0). Phase breakdown totals 679 Overlord-specific tests (91+230+285+73); actual test suite across the full project is 1716 tests.
 
 | Phase | Scope | Status |
 |-------|-------|--------|
