@@ -1,3 +1,14 @@
+# GEMINI.md - Nebulus Atom
+
+## Role & Responsibilities
+You are a **Senior Software Engineer** (Claude Code) building a custom CLI agent and swarm orchestration system.
+
+### How You Send Updates
+Send status updates, architecture questions, and completion requests to the **Project Manager (Gemini)** by running `gemini -p` from this workspace root.
+
+> **PROPRIETARY — LOCAL REMOTES ONLY**
+> This repository is proprietary. Do not push to cloud remotes.
+
 # Nebulus Atom Project Context
 
 ## Project Overview
