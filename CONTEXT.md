@@ -3,54 +3,50 @@
 This file serves as the primary context injection point for the Nebulus Atom autonomous agent.
 The agent MUST read this file upon startup to understand the project environment, rules, and workflow.
 
-## Core Documentation
-The following files define the project s strict operating procedures. The agent must adhere to them at all times.
+## 1. Core Documentation
 
 - **[AI Directives](AI_DIRECTIVES.md)**: Coding standards, architecture (MVC), and commit conventions.
 - **[Workflow](WORKFLOW.md)**: Branching strategy (Gitflow-lite) and development lifecycle.
-- **[Project Goals](GEMINI.md)**: High-level objectives and influences (Moltbot, Gemini CLI).
+- **[Project Goals](GEMINI.md)**: High-level objectives and communication protocol.
+- **[CLAUDE.md](CLAUDE.md)**: Persona definition and project-specific instructions.
 
-## Feature Roadmap
-Active feature specifications are located in `docs/features/`.
-Always check this directory before starting new work.
+## 2. 🚨 MANDATORY: AI Behavior & Rules
+**CRITICAL**: Before proposing any changes or running commands, you MUST review and adhere to the rules defined in:
+👉 **[AI_DIRECTIVES.md](AI_DIRECTIVES.md)**
 
-## System Prompt Injection
-*The following instructions are part of your core identity:*
+Key constraints from these rules include:
+*   **MVC Architecture**: Strict separation of Models, Views, Controllers, and Services.
+*   **Test-Driven**: `pytest` must pass before completion.
+*   **Git-Ops**: Strict branching (Feature/Fix/Docs -> Develop -> Main).
 
-1. **Role**: You are a Senior AI Engineer working on Nebulus Atom.
-2. **Constraint**: You must strictly follow the **MVC** architecture defined in `AI_DIRECTIVES.md`.
-3. **Constraint**: All file modifications must be safe and verifiable.
-4. **Constraint**: You must operate autonomously using the `Task` and `Plan` system.
-5. **Constraint**: Check `WORKFLOW.md` for proper branching before making changes.
+## 3. 🗺️ Project Structure Overview
 
-## Library Implementation Tips
-- **ChromaDB**: Use `chromadb.PersistentClient(path="./.nebulus_atom/db")`. Create collections with `client.get_or_create_collection("codebase")`. Add with `collection.add()` and search with `collection.query()`.
-- **Sentence Transformers**: Use `model = SentenceTransformer("all-MiniLM-L6-v2")` and `embeddings = model.encode(texts)`.
+- `nebulus_atom/`: Core CLI agent logic.
+- `nebulus_swarm/`: Multi-agent swarm orchestration.
+- `docs/`: Project documentation and feature specs.
+- `tests/`: Unit and integration testing suite.
+- `scripts/`: Utility scripts and test runners.
 
-## Tool Usage Tips
-- **Search Results**: When using `search_code`, the output is a list of dictionaries. Use the `id` field as the file path for `read_file` or `pin_file`.
+## 4. 💻 CLI Reference
 
-## Task Management Tips
-- **Dependencies**: When adding a task that depends on another, pass `dependencies=["TASK_ID"]` to `add_task`.
-- **Visualization**: To see the visual plan graph, simply call `get_plan`. The system automatically renders the dependency tree. Do not create a skill for this.
+**Nebulus Atom** is a command-line tool. The primary entry point is `nebulus_atom/main.py`.
 
-## Project Structure Overview
-- **Core Logic**: `nebulus_atom/`
-- **Models**: `nebulus_atom/models/`
-- **Views**: `nebulus_atom/views/` (e.g., `cli_view.py`)
-- **Services**: `nebulus_atom/services/`
-- **Skills**: `nebulus_atom/skills/`
-- **Documentation**: `docs/`
+### Usage
+```bash
+python3 -m nebulus_atom.main [COMMAND] [ARGS]
+```
 
-## Critical Tool Reminders
-- **Task IDs**: The IDs `ebf3c295...` etc. were from a previous run. Always use the IDs returned by the *current* session s `add_task` tool.
-- **Correct Tools**: Use `add_task` (not `create_task`).
+### Commands
+| Command | Description |
+| :--- | :--- |
+| `start` | Start the interactive agent. |
+| `dashboard` | Launch the telemetry dashboard. |
+| `docs` | View or list embedded documentation. |
+| `overlord` | Control plane commands for swarm management. |
 
-## Agent Memory Tip
-- **Tool Outputs**: You can always see the IDs and results of your previous tool calls in the message history. Do not ask the user for information you have already received from a tool (like Task IDs).
+## 5. Coding Standards
 
-## Technical Requirement: WebGateway
-
-- **Model**: Implement as a dataclass in `nebulus_atom/models/web_gateway.py`.
-- **Service**: Implement in `nebulus_atom/services/web_gateway_service.py`.
-- **View**: Implement in `nebulus_atom/views/web_view.py`.
+1. **Unit Tests**: ALL changes must have accompanying unit tests in the `tests/` directory.
+2. **Type Hinting**: Use Python type hints for all function definitions.
+3. **Documentation**: All public functions must have docstrings (Google style).
+4. **Conventional Commits**: Use `feat:`, `fix:`, `docs:`, or `chore:` prefixes.
