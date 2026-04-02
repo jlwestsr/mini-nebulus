@@ -2,7 +2,7 @@
 
 ![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![Version](https://img.shields.io/badge/version-2.6.0-green.svg)
-![Tests](https://img.shields.io/badge/tests-1507%20passing-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-1746%20passing-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-proprietary-red.svg)
 
 > **v2.6.0** - A professional, autonomous AI engineer CLI powered by local LLMs for GitHub automation, code generation, and multi-agent orchestration.

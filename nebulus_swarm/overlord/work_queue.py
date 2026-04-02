@@ -56,6 +56,7 @@ class Task:
     locked_by: Optional[str] = None
     locked_at: Optional[str] = None
     retry_count: int = 0
+    max_retries: int = 2
     mirror_path: Optional[str] = None
     token_budget: Optional[int] = None
     created_at: str = ""
@@ -64,14 +65,14 @@ class Task:
 
 @dataclass
 class TaskLogEntry:
-    """An audit log entry for a task state transition."""
+    """An entry in the task audit log."""
 
-    id: int
-    task_id: str
-    old_status: str
-    new_status: str
-    changed_by: str
-    timestamp: str
+    id: int = 0
+    task_id: str = ""
+    old_status: str = ""
+    new_status: str = ""
+    changed_by: str = ""
+    timestamp: str = ""
     reason: Optional[str] = None
 
 
@@ -79,7 +80,6 @@ class TaskLogEntry:
 class DispatchResultRecord:
     """A record of a dispatch execution against a task."""
 
-    id: int = 0
     task_id: str = ""
     worker_id: str = ""
     model_id: str = ""
@@ -90,6 +90,7 @@ class DispatchResultRecord:
     output_log: str = ""
     tokens_used: int = 0
     created_at: str = ""
+    id: int = 0
 
 
 class WorkQueue:
@@ -142,6 +143,7 @@ class WorkQueue:
                     locked_by TEXT,
                     locked_at TEXT,
                     retry_count INTEGER NOT NULL DEFAULT 0,
+                    max_retries INTEGER NOT NULL DEFAULT 2,
                     mirror_path TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
@@ -206,6 +208,12 @@ class WorkQueue:
             self._add_column_if_missing(cursor, "tasks", "token_budget", "INTEGER")
             self._add_column_if_missing(
                 cursor,
+                "tasks",
+                "max_retries",
+                "INTEGER NOT NULL DEFAULT 2",
+            )
+            self._add_column_if_missing(
+                cursor,
                 "dispatch_results",
                 "tokens_used",
                 "INTEGER NOT NULL DEFAULT 0",
@@ -265,6 +273,7 @@ class WorkQueue:
             locked_by=row["locked_by"],
             locked_at=row["locked_at"],
             retry_count=row["retry_count"],
+            max_retries=row["max_retries"],
             mirror_path=row["mirror_path"],
             token_budget=row["token_budget"] if "token_budget" in keys else None,
             created_at=row["created_at"],
@@ -313,22 +322,6 @@ class WorkQueue:
         mirror_path: Optional[str] = None,
         token_budget: Optional[int] = None,
     ) -> str:
-        """Create a new task in backlog status.
-
-        Args:
-            title: Short title for the task.
-            project: Project this task belongs to.
-            description: Optional detailed description.
-            priority: One of: low, medium, high, critical.
-            complexity: Complexity estimate (free-form).
-            external_id: External tracker ID (e.g. GitHub issue number).
-            external_source: External tracker source (e.g. "github:owner/repo").
-            mirror_path: Path to mirror clone for this task.
-            token_budget: Optional per-task token budget limit.
-
-        Returns:
-            The UUID of the created task.
-        """
         task_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
 
@@ -338,8 +331,8 @@ class WorkQueue:
                 INSERT INTO tasks (
                     id, title, project, description, status, priority,
                     complexity, external_id, external_source, mirror_path,
-                    token_budget, retry_count, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'backlog', ?, ?, ?, ?, ?, ?, 0, ?, ?)
+                    token_budget, retry_count, max_retries, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, "backlog", ?, ?, ?, ?, ?, ?, 0, 2, ?, ?)
                 """,
                 (
                     task_id,
@@ -847,33 +840,15 @@ class WorkQueue:
         priority: str = "medium",
         token_budget: Optional[int] = None,
     ) -> tuple[str, bool]:
-        """Insert or update a task from GitHub issue data.
-
-        Uses INSERT ON CONFLICT to create or update. Does NOT overwrite
-        the status field on update (preserves workflow state).
-
-        Args:
-            external_id: GitHub issue number (as string).
-            external_source: Source identifier (e.g. "github:owner/repo").
-            title: Issue title.
-            project: Project name.
-            description: Issue body.
-            priority: Mapped priority.
-
-        Returns:
-            Tuple of (task_id, is_new).
-        """
         now = datetime.now(timezone.utc).isoformat()
 
         with self._get_connection() as conn:
-            # Check if it already exists
             existing = conn.execute(
                 "SELECT id FROM tasks WHERE external_id = ? AND external_source = ?",
                 (external_id, external_source),
             ).fetchone()
 
             if existing:
-                # Update title/description/priority but NOT status
                 conn.execute(
                     """
                     UPDATE tasks
@@ -890,8 +865,8 @@ class WorkQueue:
                     INSERT INTO tasks (
                         id, external_id, external_source, project, title,
                         description, status, priority, complexity,
-                        retry_count, token_budget, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'backlog', ?, 'medium', 0, ?, ?, ?)
+                        retry_count, max_retries, token_budget, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, "backlog", ?, "medium", 0, 2, ?, ?, ?)
                     """,
                     (
                         task_id,

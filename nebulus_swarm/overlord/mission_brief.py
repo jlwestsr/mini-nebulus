@@ -18,6 +18,20 @@ logger = logging.getLogger(__name__)
 BRIEF_FILENAME = "MISSION_BRIEF.md"
 
 _BRIEF_TEMPLATE = """\
+## Return Block (MANDATORY)
+End your output with exactly this block, filling in the fields:
+
+---NEBULUS-RETURN---
+STATUS: complete|needs_review|needs_fix|blocked|error
+SUMMARY: Brief description of what was accomplished
+FILES_CREATED: file1.py, file2.py
+FILES_MODIFIED: file3.py
+TESTS_PASSED: 12/12
+TESTS_FAILED: 0
+BLOCKERS: None
+NEXT_ACTION: merge|review|fix|escalate
+---END-NEBULUS-RETURN---
+
 # MISSION BRIEF — {title}
 
 ## Objective
@@ -93,6 +107,15 @@ def generate_mission_brief(ctx: DispatchContext) -> Path:
         content += _PM_ROLE_SECTION
 
     # Append focus context if provided
+    # Append fix context if provided
+    fix_context = getattr(ctx, "fix_context", None)
+    if fix_context:
+        content += f"\n## FIX ATTEMPT {fix_context.attempt}\n"
+        content += f"**Previous Review Feedback:** {fix_context.review_feedback}\n"
+        content += (
+            f"**Previous Output Snippet:** {fix_context.previous_output[:1000]}...\n"
+        )
+
     focus_context = getattr(ctx, "focus_context", None)
     if focus_context:
         content += f"\n## Ecosystem Context\n{focus_context}\n"
