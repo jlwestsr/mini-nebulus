@@ -199,7 +199,7 @@ def _extract_section(content: str, heading_pattern: str) -> Optional[str]:
         The section content (between the heading and the next heading), or None.
     """
     pattern = re.compile(
-        rf"^(#+)\s+.*?{heading_pattern}.*?$",
+        rf"^(#+)\s+.*?(?:{heading_pattern}).*?$",
         re.IGNORECASE | re.MULTILINE,
     )
     match = pattern.search(content)
